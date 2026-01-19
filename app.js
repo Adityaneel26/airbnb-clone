@@ -48,19 +48,7 @@ app.listen(port,()=>{
     console.log("app is listenini on 8080 port")
 })
 
-// app.get("/testListing",async (req,res)=>{
-//     let sempleListing = new Listing({
-//         title:"my new villa",
-//         description:"by the beach",
-//         price:1200,
-//         location:"calangute,Goa",
-//         country:"india"
-//     })
 
-//     await sempleListing.save();
-//     console.log("sample was saved")
-//     res.send("successful testing")
-// })
 app.get("/listings",wrapAsync(async (req,res)=>{
     const allListings = await Listing.find({})
     res.render("./listings/index.ejs",{allListings})
