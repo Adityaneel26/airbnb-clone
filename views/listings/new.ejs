@@ -8,7 +8,7 @@
                 <form action="/listings" novalidate class="needs-validation" method="post">
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
-                        <input type="text" name="title" placeholder="enter the title" class="form-control" required>
+                        <input type="text" name="listing[title]"  placeholder="enter the title" class="form-control" required>
                         <div class="valid-feedback">
                             Title Looks good!
                         </div>
@@ -18,7 +18,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="discription" class="form-label">Description</label>
-                        <textarea name="description" placeholder="enter discription" class="form-control"
+                        <textarea name="listing[description]"  placeholder="enter discription" class="form-control"
                             required></textarea>
                         <div class="valid-feedback">
                             Nice discription
@@ -29,14 +29,14 @@
                     </div>
                     <div class="mb-3">
                         <label for="img" class="form-label">image</label>
-                        <input type="text" name="image" placeholder="enter the image url link" class="form-control">
+                        <input type="text" name="listing[image]"  placeholder="enter the image url link" class="form-control">
                     </div>
                     <div class="row">
 
                         <div class="mb-3 col-md-4">
                             <label for="price" class="form-label">Price</label>
 
-                            <input type="number" name="price" placeholder="enter the price" class="form-control"
+                            <input type="number" name="listing[price]" placeholder="enter the price" class="form-control"
                                 required>
                             <div class="valid-feedback">
                                 Greate Price
@@ -47,7 +47,7 @@
                         </div>
                         <div class="mb-3 col-md-8">
                             <label for="country" class="form-label">Country</label>
-                            <input type="text" name="country" placeholder="enter the country" class="form-control"
+                            <input type="text" name="listing[country]"  placeholder="enter the country" class="form-control"
                                 required>
 
                             <div class="valid-feedback">
@@ -60,7 +60,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="location" class="form-label">Location</label>
-                        <input type="text" name="location" placeholder="enter the location" class="form-control"
+                        <input type="text" name="listing[location]"  placeholder="enter the location" class="form-control"
                             required>
                         <div class="valid-feedback">
                             Your Location Is Valid
