@@ -3,7 +3,7 @@ const app=express()
 const mongoose=require("mongoose")
 const path=require("path")
 const methodoverride=require("method-override")
-const port=8080
+const port=8000
 const mongo_url="mongodb://127.0.0.1:27017/wanderlust"
 const Listing=require("./models/listing")
 const ejsmate=require("ejs-mate")
@@ -11,7 +11,30 @@ const wrapAsync=require("./utils/wrapAsync")
 const Expresserror = require("./utils/Expresserror");
 const {listingSchema,reviewSchema}=require("./schema.js")
 const Review=require("./models/review.js")
+const listingsRouters=require("./routes/listing.js")
+const reviewsRouters=require("./routes/review.js")
+const userRouter=require("./routes/user.js")
+const session= require("express-session")
+const flash=require("connect-flash")
 
+
+const sessionOptions={
+    secret:"mysupersessionsecret",
+    resave:false,
+    saveUninitialized:false
+}
+const passport=require("passport")
+const LocalStratgy=require("passport-local")
+const User=require("./models/user.js")
+
+
+app.use(flash())
+app.use(session(sessionOptions))
+app.use(passport.initialize())
+app.use(passport.session())
+passport.use(new LocalStratgy(User.authenticate()))
+passport.serializeUser(User.serializeUser())
+passport.deserializeUser(User.deserializeUser())
 app.engine("ejs",ejsmate)
 app.set("view engine","ejs")
 app.use(express.static(path.join(__dirname,"views")))
@@ -20,6 +43,8 @@ app.use(express.static(path.join(__dirname,"public")))
 app.use(express.urlencoded({ extended:true}))
 app.use(express.json())
 app.use(methodoverride("_method"))
+
+
 
 main().then(()=>{
     console.log("connected to db successfuly")
@@ -33,22 +58,25 @@ async function main() {
 // app.use((req, res, next) => {
 //     next(new Expresserror(404, "Page not found"));
 // });
-const validateListing = (req, res, next) => {
-  const { error } = listingSchema.validate(req.body);
-  if (error) {
-    throw new Expresserror(400, error.details[0].message);
-  }
-  next();
-};
 
-const validateReview=(req,res,next)=>{
-    let {error}=reviewSchema.validate(req.body);
-        if(error){
-            throw new Expresserror(400,error)
-        }else{
-            next();
-        }
-}
+app.use((req,res,next)=>{
+    res.locals.success=req.flash("success")
+    res.locals.error=req.flash("error")
+    next()
+})
+
+app.get("/demouser",async(req,res)=>{
+    let fakeuser=new User({
+        email:"adi@gmail.com"
+        ,username:"Aditya"
+    })
+    let newuser = await User.register(fakeuser,"helloworld")
+    res.send(newuser)
+})
+
+app.use("/listings",listingsRouters)
+app.use("/listings/:id/reviews",reviewsRouters)
+app.use("/",userRouter)
 
 app.get("/",(req,res)=>{
     res.send("hello this is root")
@@ -57,81 +85,6 @@ app.listen(port,()=>{
     console.log("app is listenini on 8080 port")
 })
 
-
-app.get("/listings",wrapAsync(async (req,res)=>{
-    const allListings = await Listing.find({})
-    res.render("./listings/index.ejs",{allListings})
-}))
-
-app.get("/listings/new",(req,res)=>{
-    res.render("./listings/new.ejs")
-})
-/////////////////////////////show rout
-app.get("/listings/:id",wrapAsync(async(req,res)=>{
-    let {id}=req.params;
-    const listing =  await Listing.findById(id).populate("reviews")
-    res.render("./listings/show.ejs",{listing})
-}))
-
-////////////////////////////new rout
-app.post("/listings",validateListing,wrapAsync(async(req,res)=>{
-   
-        
-        const newlisting = new Listing(req.body.listing)
-   
-        await newlisting.save();
-        // console.log(    )
-        res.redirect("/listings")
-    
-}))
-
-
-////////////////////////////////edit rout
-app.get("/listings/:id/edit",wrapAsync(async(req,res)=>{
-    let {id}=req.params;
-    const listing =  await Listing.findById(id)
-    res.render("./listings/edit.ejs",{listing})
-}))
-
-
-//////////////////////////////update rout
-app.put("/listings/:id",validateListing,wrapAsync(async(req,res)=>{
-   
-    let {id}= req.params;
-    // let data=req.body;
-    // console.log(data)
-    await Listing.findByIdAndUpdate(id,{ ...req.body.listings })
-    res.redirect(`/listings/${id}`)
-}))
-
-//////////////////////////////delete route
-app.delete("/listings/:id",wrapAsync(async(req,res)=>{
-    let {id}=req.params;
-    let deletedListing= await Listing.findByIdAndDelete(id)
-    console.log(deletedListing)
-    res.redirect("/listings")
-}))
-
-
-//reviews
-//post rout of review
-app.post("/listings/:id/reviews",validateReview,wrapAsync(async(req,res)=>{
-    let listing=await Listing.findById(req.params.id)
-    let newReview=new Review(req.body.review);
-    listing.reviews.push(newReview)
-    await newReview.save()
-    await listing.save()
-    console.log("new review saved")
-    res.redirect(`/listings/${req.params.id}`)
-}))
-
-//Delete rout
-app.delete("/listings/:id/review/:reviewid",wrapAsync(async(req,res)=>{
-    let {id,reviewid}=req.params
-    await Listing.findByIdAndUpdate(id,{$pull:{reviews:reviewid}})
-    await Review.findByIdAndDelete(reviewid)
-    res.redirect(`/listings/${id}`)
-}))
 
 
 
