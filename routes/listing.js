@@ -4,7 +4,7 @@ const wrapAsync=require("../utils/wrapAsync")
 const Expresserror = require("../utils/Expresserror");
 const {listingSchema,reviewSchema}=require("../schema.js")
 const Listing=require("../models/listing")
-
+const {isLoggedIn}=require("../middelwear.js")
 
 const validateListing = (req, res, next) => {
   const { error } = listingSchema.validate(req.body);
@@ -20,12 +20,11 @@ router.get("/",wrapAsync(async (req,res)=>{
     res.render("./listings/index.ejs",{allListings})
 }))
 
-router.get("/new",(req,res)=>{
-    if(!req.isAuthenticated()){
-        req.flash("error","you must be logeed in to create listings")
-        res.redirect("/login")
-    }
-    res.render("./listings/new.ejs")
+router.get("/new",isLoggedIn,(req,res)=>{
+
+
+        res. render("./listings/new.ejs")
+
 })
 /////////////////////////////show rout
 router.get("/:id",wrapAsync(async(req,res)=>{
@@ -39,7 +38,7 @@ router.get("/:id",wrapAsync(async(req,res)=>{
 }))
 
 ////////////////////////////new rout
-router.post("/",validateListing,wrapAsync(async(req,res)=>{
+router.post("/",isLoggedIn,validateListing,wrapAsync(async(req,res)=>{
    
         
         const newlisting = new Listing(req.body.listing)
@@ -53,7 +52,7 @@ router.post("/",validateListing,wrapAsync(async(req,res)=>{
 
 
 ////////////////////////////////edit rout
-router.get("/:id/edit",wrapAsync(async(req,res)=>{
+router.get("/:id/edit",isLoggedIn,wrapAsync(async(req,res)=>{
     let {id}=req.params;
     
     const listing =  await Listing.findById(id)
@@ -66,7 +65,7 @@ router.get("/:id/edit",wrapAsync(async(req,res)=>{
 
 
 //////////////////////////////update rout
-router.put("/:id",validateListing,wrapAsync(async(req,res)=>{
+router.put("/:id",isLoggedIn,validateListing,wrapAsync(async(req,res)=>{
    
     let {id}= req.params;
     // let data=req.body;
@@ -78,7 +77,7 @@ router.put("/:id",validateListing,wrapAsync(async(req,res)=>{
 }))
 
 //////////////////////////////delete route
-router.delete("/:id",wrapAsync(async(req,res)=>{
+router.delete("/:id",isLoggedIn,wrapAsync(async(req,res)=>{
     let {id}=req.params;
     let deletedListing= await Listing.findByIdAndDelete(id)
     console.log(deletedListing)
