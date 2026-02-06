@@ -28,8 +28,9 @@ const LocalStratgy=require("passport-local")
 const User=require("./models/user.js")
 
 
-app.use(flash())
 app.use(session(sessionOptions))
+app.use(flash())
+
 app.use(passport.initialize())
 app.use(passport.session())
 passport.use(new LocalStratgy(User.authenticate()))
@@ -58,17 +59,17 @@ async function main() {
 // app.use((req, res, next) => {
 //     next(new Expresserror(404, "Page not found"));
 // });
-
 app.use((req,res,next)=>{
-    res.locals.success=req.flash("success")
-    res.locals.error=req.flash("error")
-    next()
-})
+    res.locals.success = req.flash("success");
+    res.locals.error = req.flash("error");
+    res.locals.currUser = req.user; // ✅ FIX
+    next();
+});
 
 app.get("/demouser",async(req,res)=>{
     let fakeuser=new User({
         email:"adi@gmail.com"
-        ,username:"Aditya"
+        ,username:"Aditya"  
     })
     let newuser = await User.register(fakeuser,"helloworld")
     res.send(newuser)
