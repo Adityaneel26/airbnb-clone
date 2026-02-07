@@ -1,6 +1,7 @@
 const { ref } = require("joi");
 const mongoose = require("mongoose");
 const review = require("./review");
+const user = require("./user");
 
 const listingSchema = new mongoose.Schema({
   title: {
@@ -12,13 +13,8 @@ const listingSchema = new mongoose.Schema({
   },
   // START OF THE FIX
   image:  {          // Store the URL
-      type: String,
-      default:
-        "https://images.pexels.com/photos/1323550/pexels-photo-1323550.jpeg?cs=srgb&dl=pexels-simon73-1323550.jpg&fm=jpg",
-      set: (v) =>
-        v === ""
-          ? "https://images.pexels.com/photos/1323550/pexels-photo-1323550.jpeg?cs=srgb&dl=pexels-simon73-1323550.jpg&fm=jpg"
-          : v,
+      url: String,
+      filename: String     
     },
   
   // END OF THE FIX
@@ -36,7 +32,11 @@ const listingSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:"Review"
     }
-  ]
+  ],
+  owner:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"User"
+  }
 });
 
 listingSchema.post("findOneAndDelete",async(listing)=>{
