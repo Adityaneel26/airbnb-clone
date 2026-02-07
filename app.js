@@ -1,3 +1,4 @@
+require("dotenv").config()
 const express=require('express')
 const app=express()
 const mongoose=require("mongoose")
@@ -90,6 +91,7 @@ app.listen(port,()=>{
 
 
 app.use((err, req, res, next) => {
+    let a=err instanceof Expresserror
     let { status = 500, message = "Something went wrong" } = err;
     // res.status(status).send(message);
     res.render("error.ejs",{message})
