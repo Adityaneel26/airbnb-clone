@@ -7,7 +7,7 @@
             <h3> <%= listing.title %></h3>
         </div>
     <div class="card col-6 offset-3 show-card listing-card">
-        <img src="<%=listing.image%>" class="card-img-top show-img" alt="">
+        <img src="<%=listing.image.url%>" class="card-img-top show-img" alt="">
         <div class="card-body">
             <p class="card-text">
                 <b>   </b><br>
@@ -70,6 +70,8 @@
             </form>
             <hr>
             <% } %>
+
+            <% if(listing.reviews.length >0) {%>
              <p><b>All Review</b></p>
              <div class="row">
 
@@ -90,5 +92,84 @@
                     <% } %>
                 </div>
             </div>
+            <%}%>
+            <div class="col-6 offset-3 mt-4 mb-5">
+                <h4 class="mb-3">📍 Property Location</h4>
+                <div id="map" style="height: 400px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);"></div>
+            </div>
+
+<script>
+  // Get coordinates from listing or use default
+  let latitude = <%= listing.geometry && listing.geometry.coordinates ? listing.geometry.coordinates[1] : 23.0225 %>;
+  let longitude = <%= listing.geometry && listing.geometry.coordinates ? listing.geometry.coordinates[0] : 72.5714 %>;
+
+  // Initialize map
+  const map = L.map("map").setView([latitude, longitude], 15);
+
+  // Add tile layer
+  L.tileLayer(
+    "https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=<%= mapApi %>",
+    {
+      attribution: "© OpenStreetMap © Geoapify",
+      maxZoom: 18,
+      minZoom: 2
+    }
+  ).addTo(map);
+
+  // Add custom marker with popup
+  const marker = L.marker([latitude, longitude], {
+    icon: L.icon({
+      iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+      iconSize: [32, 32],
+      iconAnchor: [16, 32],
+      popupAnchor: [0, -32]
+    })
+  }).addTo(map);
+
+  // Create detailed popup
+  const popupContent = `
+    <div style="font-size: 14px; min-width: 200px;">
+      <h5 style="margin-bottom: 8px; color: #333;"><strong><%= listing.title %></strong></h5>
+      <p style="margin: 5px 0; color: #666;">
+        <i class="fas fa-map-marker-alt" style="color: #e74c3c;"></i> 
+        <strong><%= listing.location %></strong>
+      </p>
+      <p style="margin: 5px 0; color: #666;">
+        <i class="fas fa-globe" style="color: #3498db;"></i> 
+        <%= listing.country %>
+      </p>
+      <p style="margin: 5px 0; color: #666;">
+        <i class="fas fa-rupee-sign" style="color: #27ae60;"></i> 
+        ₹<strong><%= listing.price %></strong>
+      </p>
+      <p style="margin: 5px 0; color: #999; font-size: 12px;">
+        Coordinates: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}
+      </p>
+    </div>
+  `;
+
+  marker.bindPopup(popupContent, {
+    maxWidth: 250,
+    className: 'custom-popup'
+  }).openPopup();
+
+  // Add circle around marker to show area
+  L.circle([latitude, longitude], {
+    color: '#e74c3c',
+    fillColor: '#e74c3c',
+    fillOpacity: 0.1,
+    radius: 500
+  }).addTo(map);
+</script>
+
+<style>
+  .custom-popup .leaflet-popup-content-wrapper {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 2px solid #e74c3c;
+  }
+</style>
 
 </body>
+

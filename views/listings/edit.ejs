@@ -5,10 +5,10 @@
             <div class="col-8 offset-2">
                 <br><br>
                 <h3>edit you listing</h3>
-                <form novalidate class="needs-validation" action="/listings/<%= listing._id %>?_method=put" method="post">
+                <form novalidate class="needs-validation" action="/listings/<%= listing._id %>?_method=put" method="post" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
-                        <input type="text" name="title" value="<%= listing.title %>" class="form-control" required>
+                        <input type="text" name="listings[title]" value="<%= listing.title %>" class="form-control" required>
                         <div class="valid-feedback">
                             Title Looks good!
                         </div>
@@ -18,7 +18,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="discription" class="form-label">Description</label>
-                        <textarea name="description" class="form-control" required><%= listing.description %></textarea>
+                        <textarea name="listings[description]" class="form-control" required><%= listing.description %></textarea>
                          <div class="valid-feedback">
                             Nice discription
                         </div>
@@ -26,10 +26,15 @@
                             Please Enter a valid discription.
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="img" class="form-label">image</label>
 
-                        <input type="text" name="image" value="<%= listing.image %>" required class="form-control">
+                    <div class="md-3">
+                        original listing image<br>
+                        <img src="<%= originalImageUrl %>" alt="">
+                    </div>
+                    <div class="mb-3">
+                        <label for="img" class="form-label">please upload new image</label>
+
+                        <input type="file" name="listings[image]" class="form-control">
                          <div class="valid-feedback">
                                 Nice Image
                             </div>
@@ -42,7 +47,7 @@
                         <div class="mb-3 col-md-4">
                             <label for="price" class="form-label">Price</label>
 
-                            <input type="number" name="price" value="<%= listing.price %>" class="form-control" required>
+                            <input type="number" name="listings[price]" value="<%= listing.price %>" class="form-control" required>
                              <div class="valid-feedback">
                                 Greate Price
                             </div>
@@ -53,7 +58,7 @@
                         <div class="mb-3 col-md-8">
                             <label for="country" class="form-label">Country</label>
 
-                            <input type="text" name="country" value="<%= listing.country %>" class="form-control" required>
+                            <input type="text" name="listings[country]" value="<%= listing.country %>" class="form-control" required>
                             <div class="valid-feedback">
                                 Wonderfull
                             </div>
@@ -65,7 +70,7 @@
                         <div class="mb-3">
                             <label for="location" class="form-label">Location</label>
 
-                            <input type="text" name="location" value="<%= listing.location %>" class="form-control" required>
+                            <input type="text" name="listings[location]" value="<%= listing.location %>" class="form-control" required>
                             <div class="valid-feedback">
                             Your Location Is Valid
                         </div>
