@@ -27,6 +27,17 @@ const listingSchema = new mongoose.Schema({
   country: {
     type: String,
   },
+  geometry: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number],
+      default: [72.5714, 23.0225]  // [longitude, latitude] - India fallback
+    }
+  },
   reviews:[
     {
         type:mongoose.Schema.Types.ObjectId,
