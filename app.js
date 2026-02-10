@@ -80,9 +80,9 @@ app.use("/listings",listingsRouters)
 app.use("/listings/:id/reviews",reviewsRouters)
 app.use("/",userRouter)
 
-app.get("/",(req,res)=>{
-    res.send("hello this is root")
-})
+// app.get("/",(req,res)=>{
+//     res.send("hello this is root")
+// })
 app.listen(port,()=>{
     console.log("app is listenini on 8080 port")
 })
