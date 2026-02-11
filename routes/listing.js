@@ -7,18 +7,27 @@ const Listing=require("../models/listing")
 const {isLoggedIn,isOwner,validateListing}=require("../middelwear.js")
 const listingController=require("../controllers/listings.js")
 const multer  = require('multer')
-const upload = multer({ dest: 'uploads/' })
+const {storage}=require("../cloudinaryConfig.js")
+const upload = multer({ storage })
+
 
 
 router.route("/")
 .get(wrapAsync(listingController.index))
-.post(upload.single('listing[image]'),isLoggedIn,validateListing,wrapAsync(listingController.createListing))
+router.post(
+  "/",
+  isLoggedIn,
+  upload.single("listing[image]"), // 👈 multer FIRST
+  validateListing,                 // 👈 then Joi
+  wrapAsync(listingController.createListing)
+);
+
 
 router.get("/new",isLoggedIn,listingController.renderNewForm)
 
 router.route("/:id")
 .get(wrapAsync(listingController.showListings))
-.put(isLoggedIn,isOwner,validateListing,wrapAsync(listingController.updateListing))
+.put(isLoggedIn,isOwner,upload.single("listing[image]"),validateListing,wrapAsync(listingController.updateListing))
 .delete(isLoggedIn,isOwner,wrapAsync(listingController.destroyListing))
 
 
