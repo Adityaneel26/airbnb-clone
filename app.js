@@ -16,7 +16,6 @@ const Listing = require("./models/listing")
 const Review = require("./models/review")
 const User = require("./models/user")
 const Expresserror = require("./utils/Expresserror")
-const wrapAsync = require("./utils/wrapAsync")
 const { listingSchema, reviewSchema } = require("./schema.js")
 
 // Import routes
@@ -32,10 +31,7 @@ const dburl = process.env.ATLAS_DB
 
 // MongoDB connection
 async function main() {
-    await mongoose.connect(dburl, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    });
+    await mongoose.connect(dburl);
     console.log("Connected to DB successfully");
 }
 
@@ -43,30 +39,30 @@ main().catch(err => {
     console.log("MongoDB connection error:", err);
 });
 
-// Session store configuration - FIXED
-const store = MongoStore.create({
+// FIXED: Session store configuration - Using the CORRECT syntax for connect-mongo v4+
+const sessionStore = MongoStore.create({
     mongoUrl: dburl,
     crypto: {
         secret: process.env.SECRET
     },
-    touchAfter: 24 * 3600 // 24 hours in seconds
+    touchAfter: 24 * 3600
 });
 
-store.on("error", function(e) {
+sessionStore.on("error", function(e) {
     console.log("SESSION STORE ERROR:", e);
 });
 
 const sessionOptions = {
-    store,
     secret: process.env.SECRET,
     resave: false,
     saveUninitialized: false,
+    store: sessionStore,
     cookie: {
         expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
         maxAge: 7 * 24 * 60 * 60 * 1000,
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production" ? true : false,
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
+        secure: false, // Set to false for development, true for production with HTTPS
+        sameSite: "lax"
     }
 }
 
@@ -81,7 +77,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use(express.json())
 app.use(methodoverride("_method"))
 
-// Session and flash middleware
+// Session and flash middleware - ORDER MATTERS!
 app.use(session(sessionOptions))
 app.use(flash())
 
@@ -100,20 +96,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Demo user route (optional - you can remove this in production)
-app.get("/demouser", async (req, res) => {
-    try {
-        let fakeuser = new User({
-            email: "adi@gmail.com",
-            username: "Aditya"
-        });
-        let newuser = await User.register(fakeuser, "helloworld");
-        res.send(newuser);
-    } catch (error) {
-        res.send(error);
-    }
-});
-
 // Routes
 app.use("/listings", listingsRouters)
 app.use("/listings/:id/reviews", reviewsRouters)
@@ -124,12 +106,12 @@ app.get("/", (req, res) => {
     res.redirect("/listings");
 })
 
-// 404 handler - must be after all routes
+// 404 handler
 app.use((req, res, next) => {
     next(new Expresserror(404, "Page not found"));
 });
 
-// Error handling middleware - must be last
+// Error handling middleware
 app.use((err, req, res, next) => {
     let { status = 500, message = "Something went wrong" } = err;
     console.error("Error:", err);
