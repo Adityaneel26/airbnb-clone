@@ -16,14 +16,34 @@ const listingsRouters=require("./routes/listing.js")
 const reviewsRouters=require("./routes/review.js")
 const userRouter=require("./routes/user.js")
 const session= require("express-session")
+const MongoStroe=require("connect-mongo")
 const flash=require("connect-flash")
+const dburl=process.env.ATLAS_DB
+const store=MongoStore.create({
+    mongoUrl:dburl,
+    crypto:{
+        secret:"mysupersessionsecret"
 
-
+    },
+    touchAfter:24*3600
+})
+store.on("error",()=>{
+    console.log("Error in mongo store")
+})
 const sessionOptions={
+    store,
     secret:"mysupersessionsecret",
     resave:false,
-    saveUninitialized:false
+    saveUninitialized:false,
+    cookie:{
+        expires:Date.now() + 7 *24 *60 *60 *1000,
+        maxAge:7 *24 *60 *60 *1000,
+        httponly:true,
+    }
 }
+
+
+
 const passport=require("passport")
 const LocalStratgy=require("passport-local")
 const User=require("./models/user.js")
@@ -54,7 +74,7 @@ main().then(()=>{
     console.log(err)
 })
 async function main() {
-    await mongoose.connect(mongo_url)
+    await mongoose.connect(dburl)
 }
 
 // app.use((req, res, next) => {
