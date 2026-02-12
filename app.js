@@ -16,13 +16,13 @@ const listingsRouters=require("./routes/listing.js")
 const reviewsRouters=require("./routes/review.js")
 const userRouter=require("./routes/user.js")
 const session= require("express-session")
-const MongoStroe=require("connect-mongo")
+const MongoStore=require("connect-mongo")
 const flash=require("connect-flash")
 const dburl=process.env.ATLAS_DB
 const store=MongoStore.create({
     mongoUrl:dburl,
     crypto:{
-        secret:"mysupersessionsecret"
+        secret:process.env.SECRET
 
     },
     touchAfter:24*3600
@@ -32,7 +32,7 @@ store.on("error",()=>{
 })
 const sessionOptions={
     store,
-    secret:"mysupersessionsecret",
+    secret:process.env.SECRET,
     resave:false,
     saveUninitialized:false,
     cookie:{
