@@ -19,14 +19,14 @@ const session= require("express-session")
 const MongoStore=require("connect-mongo")
 const flash=require("connect-flash")
 const dburl=process.env.ATLAS_DB
-const store=MongoStore.create({
-    mongoUrl:dburl,
-    crypto:{
-        secret:process.env.SECRET
-
+const store = new MongoStore({
+    mongoUrl: dburl,
+    crypto: {
+        secret: process.env.SECRET
     },
-    touchAfter:24*3600
-})
+    touchAfter: 24 * 3600
+});
+
 store.on("error",()=>{
     console.log("Error in mongo store")
 })
