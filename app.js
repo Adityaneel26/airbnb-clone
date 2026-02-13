@@ -10,22 +10,11 @@ const flash = require("connect-flash");
 const passport = require("passport");
 const LocalStrategy = require("passport-local");
 
-// Try to import MongoStore with fallback
-let MongoStore;
-try {
-    MongoStore = require("connect-mongo");
-    console.log("MongoStore loaded successfully");
-} catch (err) {
-    console.error("Failed to load connect-mongo:", err.message);
-    console.log("Will use MemoryStore as fallback (not recommended for production)");
-}
-
 // Import models and utils
 const Listing = require("./models/listing");
 const Review = require("./models/review");
 const User = require("./models/user");
 const Expresserror = require("./utils/Expresserror");
-const { listingSchema, reviewSchema } = require("./schema.js");
 
 // Import routes
 const listingsRouters = require("./routes/listing.js");
@@ -49,36 +38,42 @@ if (!process.env.SECRET) {
     process.exit(1);
 }
 
-// MongoDB connection
+// MongoDB connection - REMOVED deprecated options
 async function main() {
     try {
-        await mongoose.connect(dburl, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+        await mongoose.connect(dburl);
         console.log("Connected to DB successfully");
+        return true;
     } catch (err) {
         console.log("MongoDB connection error:", err);
-        process.exit(1);
+        return false;
     }
 }
 
-main().catch(err => {
-    console.log("MongoDB connection error:", err);
-    process.exit(1);
-});
+// Initialize MongoDB connection before starting server
+async function initializeApp() {
+    const dbConnected = await main();
+    
+    if (!dbConnected) {
+        console.error("Failed to connect to database. Exiting...");
+        process.exit(1);
+    }
 
-// Session store configuration
-let sessionStore;
-
-if (MongoStore) {
+    // Session store configuration - FIXED for connect-mongo
+    let sessionStore;
+    
     try {
+        // Try to use MongoDB session store
+        const MongoStore = require("connect-mongo");
+        console.log("MongoStore loaded successfully");
+        
         sessionStore = MongoStore.create({
             mongoUrl: dburl,
             crypto: {
                 secret: process.env.SECRET
             },
-            touchAfter: 24 * 3600
+            touchAfter: 24 * 3600,
+            collectionName: 'sessions' // Add explicit collection name
         });
 
         sessionStore.on("error", function(e) {
@@ -88,82 +83,117 @@ if (MongoStore) {
         console.log("Using MongoDB session store");
     } catch (err) {
         console.error("Error creating MongoDB session store:", err);
-        console.log("Falling back to MemoryStore");
+        console.log("Using MemoryStore as fallback");
         sessionStore = new session.MemoryStore();
     }
-} else {
-    console.log("MongoStore not available, using MemoryStore");
-    sessionStore = new session.MemoryStore();
+
+    const sessionOptions = {
+        secret: process.env.SECRET,
+        resave: false,
+        saveUninitialized: false,
+        store: sessionStore,
+        cookie: {
+            expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax"
+        }
+    };
+
+    // View engine setup
+    app.engine("ejs", ejsmate);
+    app.set("view engine", "ejs");
+    app.set("views", path.join(__dirname, "views"));
+
+    // Middleware
+    app.use(express.static(path.join(__dirname, "public")));
+    app.use(express.urlencoded({ extended: true }));
+    app.use(express.json());
+    app.use(methodoverride("_method"));
+
+    // Session and flash middleware
+    app.use(session(sessionOptions));
+    app.use(flash());
+
+    // Passport configuration
+    app.use(passport.initialize());
+    app.use(passport.session());
+    passport.use(new LocalStrategy(User.authenticate()));
+    passport.serializeUser(User.serializeUser());
+    passport.deserializeUser(User.deserializeUser());
+
+    // Global middleware for flash messages and current user
+    app.use((req, res, next) => {
+        res.locals.success = req.flash("success");
+        res.locals.error = req.flash("error");
+        res.locals.currUser = req.user;
+        next();
+    });
+
+    // Routes
+    app.use("/listings", listingsRouters);
+    app.use("/listings/:id/reviews", reviewsRouters);
+    app.use("/", userRouter);
+
+    // Home route
+    app.get("/", (req, res) => {
+        res.redirect("/listings");
+    });
+
+    // Health check endpoint for Render
+    app.get("/health", (req, res) => {
+        res.status(200).send("OK");
+    });
+
+    // 404 handler
+    app.use((req, res, next) => {
+        next(new Expresserror(404, "Page not found"));
+    });
+
+    // Error handling middleware - FIXED to prevent header issues
+    app.use((err, req, res, next) => {
+        let { status = 500, message = "Something went wrong" } = err;
+        
+        // Log error for debugging
+        console.error("Error:", {
+            status,
+            message,
+            stack: err.stack,
+            url: req.url,
+            method: req.method
+        });
+
+        // Check if headers already sent
+        if (res.headersSent) {
+            return next(err);
+        }
+
+        // Set status and render error page
+        res.status(status);
+        
+        // Try to render error page, fallback to JSON if template fails
+        try {
+            res.render("error.ejs", { message });
+        } catch (renderErr) {
+            console.error("Error rendering error page:", renderErr);
+            res.json({ 
+                error: message,
+                status: status 
+            });
+        }
+    });
+
+    // Start server
+    app.listen(port, '0.0.0.0', () => {
+        console.log(`App is listening on port ${port}`);
+        console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`Server is ready to accept connections`);
+    });
 }
 
-const sessionOptions = {
-    secret: process.env.SECRET,
-    resave: false,
-    saveUninitialized: false,
-    store: sessionStore,
-    cookie: {
-        expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax"
-    }
-};
-
-// View engine setup
-app.engine("ejs", ejsmate);
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-
-// Middleware
-app.use(express.static(path.join(__dirname, "public")));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(methodoverride("_method"));
-
-// Session and flash middleware
-app.use(session(sessionOptions));
-app.use(flash());
-
-// Passport configuration
-app.use(passport.initialize());
-app.use(passport.session());
-passport.use(new LocalStrategy(User.authenticate()));
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
-
-// Global middleware for flash messages and current user
-app.use((req, res, next) => {
-    res.locals.success = req.flash("success");
-    res.locals.error = req.flash("error");
-    res.locals.currUser = req.user;
-    next();
-});
-
-// Routes
-app.use("/listings", listingsRouters);
-app.use("/listings/:id/reviews", reviewsRouters);
-app.use("/", userRouter);
-
-// Home route
-app.get("/", (req, res) => {
-    res.redirect("/listings");
-});
-
-// 404 handler
-app.use((req, res, next) => {
-    next(new Expresserror(404, "Page not found"));
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    let { status = 500, message = "Something went wrong" } = err;
-    console.error("Error:", err);
-    res.status(status).render("error.ejs", { message });
-});
-
-// Start server
-app.listen(port, () => {
-    console.log(`App is listening on port ${port}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+// Start the application
+initializeApp().catch(err => {
+    console.error("Failed to initialize app:", err);
+    process.exit(1);
 });
