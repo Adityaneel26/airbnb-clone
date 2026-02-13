@@ -29,28 +29,54 @@ const port = process.env.PORT || 8000
 // Database URL
 const dburl = process.env.ATLAS_DB
 
+// Check if required environment variables are set
+if (!dburl) {
+    console.error("ERROR: ATLAS_DB environment variable is not set");
+    process.exit(1);
+}
+
+if (!process.env.SECRET) {
+    console.error("ERROR: SECRET environment variable is not set");
+    process.exit(1);
+}
+
 // MongoDB connection
 async function main() {
-    await mongoose.connect(dburl);
-    console.log("Connected to DB successfully");
+    try {
+        await mongoose.connect(dburl, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+        console.log("Connected to DB successfully");
+    } catch (err) {
+        console.log("MongoDB connection error:", err);
+        process.exit(1);
+    }
 }
 
 main().catch(err => {
     console.log("MongoDB connection error:", err);
+    process.exit(1);
 });
 
-// FIXED: Session store configuration - Using the CORRECT syntax for connect-mongo v4+
-const sessionStore = MongoStore.create({
-    mongoUrl: dburl,
-    crypto: {
-        secret: process.env.SECRET
-    },
-    touchAfter: 24 * 3600
-});
+// Session store configuration - FIXED for connect-mongo v4+
+let sessionStore;
+try {
+    sessionStore = MongoStore.create({
+        mongoUrl: dburl,
+        crypto: {
+            secret: process.env.SECRET
+        },
+        touchAfter: 24 * 3600 // time period in seconds
+    });
 
-sessionStore.on("error", function(e) {
-    console.log("SESSION STORE ERROR:", e);
-});
+    sessionStore.on("error", function(e) {
+        console.log("SESSION STORE ERROR:", e);
+    });
+} catch (err) {
+    console.error("Error creating session store:", err);
+    process.exit(1);
+}
 
 const sessionOptions = {
     secret: process.env.SECRET,
@@ -61,7 +87,7 @@ const sessionOptions = {
         expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
         maxAge: 7 * 24 * 60 * 60 * 1000,
         httpOnly: true,
-        secure: false, // Set to false for development, true for production with HTTPS
+        secure: process.env.NODE_ENV === "production", // Set to true for production with HTTPS
         sameSite: "lax"
     }
 }
@@ -121,4 +147,5 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(port, () => {
     console.log(`App is listening on port ${port}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
